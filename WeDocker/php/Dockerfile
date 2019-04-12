@@ -1,127 +1,113 @@
-FROM php:fpm-alpine
+FROM alpine:latest
 
-ENV CPHALCON_VERSION="3.4.1" \
-    SWOOLE_VERSION="4.1.2" \
-    REDIS_VERSION="4.1.1" \
-    XDEBUG_VERSION="2.6.1" \
-    GEOIP_VERSION="1.1.1" \
-    MEMCACHED_VERSION="3.0.4" \
-    IMAGICK_VERSION="3.4.3" \
-    MONGODB_VERSION="1.5.2" \
-    YAR_VERSION="2.0.4" \
-    MSGPACK_VERSION="2.0.2" \
-    MCRYPT_VERSION="1.0.1" \
-    SITE_WORK_DIR="/sites" \
+LABEL maintainer="CuCuCumin@gmail.com"
+
+ENV PHPIZE_DEPS \
+		autoconf \
+		dpkg-dev dpkg \
+		file \
+		g++ \
+		gcc \
+		libc-dev \
+		make \
+		pkgconf \
+		re2c
+
+ENV WORK_DIR="/app" \
     COMPOSER_MIRROR="https://packagist.laravel-china.org" \
-    ENVIRON="develop"
+	PHP_FPM_USER="www-data"
 
-COPY composer /usr/local/bin/
-
-COPY lib/cphalcon-${CPHALCON_VERSION}.tar.gz \
-     lib/swoole-${SWOOLE_VERSION}.tgz \
-     lib/redis-${REDIS_VERSION}.tgz \
-     lib/xdebug-${XDEBUG_VERSION}.tgz \
-     lib/geoip-${GEOIP_VERSION}.tgz \
-     lib/memcached-${MEMCACHED_VERSION}.tgz \
-     lib/imagick-${IMAGICK_VERSION}.tgz \
-     lib/mongodb-${MONGODB_VERSION}.tgz \
-     lib/yar-${YAR_VERSION}.tgz \
-     lib/msgpack-${MSGPACK_VERSION}.tgz \
-     lib/mcrypt-${MCRYPT_VERSION}.tgz /tmp/
-
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories \
-&& apk --update add --no-cache --virtual build-dependencies \
+RUN set -ex; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories \
+&& apk --update upgrade --no-cache \
 && apk --update add --no-cache \
-    ${PHPIZE_DEPS} \
-    curl-dev \
-    curl \
+    $PHPIZE_DEPS \
     acl \
-    git \
-    shadow \	
-    imagemagick-dev \
-    imagemagick \
-    libtool \
-    libxml2-dev \
-    postgresql-dev \
-    postgresql-libs \
-    libstdc++ \
-    freetype \
-    libpng \
-    libjpeg-turbo \
-    freetype-dev \
-    libpng-dev \
-    libwebp-dev \
-    libjpeg-turbo-dev \
-    jpeg-dev \
-    libmcrypt \
-    libmcrypt-dev \
-    gmp-dev \
-    libmemcached-dev \
-    gettext-dev \
-    bzip2-dev \
-    geoip-dev \
     ca-certificates \
-&& docker-php-ext-configure gd \
-    --with-gd \
-    --with-freetype-dir=/usr/include/ \
-    --with-png-dir=/usr/include/ \
-    --with-webp-dir=/usr/include/ \
-    --with-jpeg-dir=/usr/include/ && \
-    NPROC=$(getconf _NPROCESSORS_ONLN) && \
-    docker-php-ext-install -j${NPROC} gd bcmath pdo_mysql pdo_pgsql exif sockets gmp soap pcntl zip mysqli calendar \
-&& cd /tmp && tar xvzf cphalcon-${CPHALCON_VERSION}.tar.gz \
-    && cd cphalcon-${CPHALCON_VERSION}/build \
-    && sh install \
-    && echo "extension=phalcon.so" > /usr/local/etc/php/conf.d/phalcon.ini \
-&& cd /tmp && pecl install mcrypt-${MCRYPT_VERSION}.tgz && docker-php-ext-enable mcrypt \
-&& cd /tmp && pecl install memcached-${MEMCACHED_VERSION}.tgz && docker-php-ext-enable memcached \
-&& cd /tmp && pecl install imagick-${IMAGICK_VERSION}.tgz && docker-php-ext-enable imagick \
-&& cd /tmp && pecl install mongodb-${MONGODB_VERSION}.tgz && docker-php-ext-enable mongodb \
-&& cd /tmp && pecl install swoole-${SWOOLE_VERSION}.tgz && docker-php-ext-enable swoole \
-&& cd /tmp && pecl install redis-${REDIS_VERSION}.tgz && docker-php-ext-enable redis \
-&& cd /tmp && pecl install geoip-${GEOIP_VERSION}.tgz && docker-php-ext-enable geoip \
-&& cd /tmp && pecl install yar-${YAR_VERSION}.tgz && docker-php-ext-enable yar \
-&& cd /tmp && pecl install msgpack-${MSGPACK_VERSION}.tgz && docker-php-ext-enable msgpack \
-&& cd /tmp && pecl install xdebug-${XDEBUG_VERSION}.tgz && docker-php-ext-enable xdebug \
-    && echo "xdebug.remote_enable=1" >> /usr/local/etc/php/conf.d/xdebug.ini \
-    && echo "xdebug.remote_autostart=1" >> /usr/local/etc/php/conf.d/xdebug.ini \
-    && echo "xdebug.remote_connect_back=1" >> /usr/local/etc/php/conf.d/xdebug.ini \
-&& docker-php-source delete \
-&& apk del build-dependencies \
-    autoconf \
-    file \
-    g++ \
-    gcc \
-    dpkg-dev \
-    libc-dev \
-    libgcc libstdc++ gmp-dev libxml2-dev zlib-dev \
-    pkgconf libtool pcre-dev \
-    pkgconfig \
-    make m4 perl binutils binutils-libs db \
-    pkgconf \
-    gettext-dev bzip2-dev \
-    re2c freetype-dev jpeg-dev libpng-dev libwebp-dev libjpeg-turbo-dev \
-&& ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo "Asia/Shanghai" > /etc/timezone \
-&& mkdir ${SITE_WORK_DIR} \
-&& setfacl -R -m u:www-data:rwx ${SITE_WORK_DIR} \
-&& setfacl -R -m d:u:www-data:rwx ${SITE_WORK_DIR} \
+    curl-dev \
+    libwebp \
+    libwebp-dev \
+    libmemcached-dev \
+    zlib-dev \
+    geoip-dev \
+    imagemagick-dev \
+    openssl-dev \
+    php7 \
+    php7-dev \
+    php7-pear \
+    php7-phar \
+    php7-bcmath \
+    php7-bz2 \
+    php7-ctype \
+    php7-curl \
+    php7-calendar \
+	php7-dom \
+    php7-exif \	
+    php7-fpm \
+	php7-fileinfo \
+    php7-gd \
+    php7-gmp \
+    php7-iconv \
+    php7-intl \
+    php7-json \
+    php7-mbstring \
+    php7-mysqli \
+    php7-mysqlnd \
+    php7-opcache \
+    php7-openssl \
+    php7-pcntl \
+    php7-pdo \
+    php7-pdo_mysql \
+    php7-pdo_pgsql \
+    php7-pdo_sqlite \
+    php7-pgsql \
+    php7-posix \
+    php7-pecl-event \
+    php7-pecl-igbinary \
+    php7-pecl-redis \
+    php7-pecl-msgpack \
+    php7-pecl-mongodb \
+    php7-pecl-memcached \
+    php7-session \
+    php7-soap \
+    php7-sockets \
+    php7-sysvmsg \
+    php7-sysvsem \
+    php7-sysvshm \
+    php7-sodium \
+	php7-simplexml \
+    php7-zip \
+	php7-zlib \
+    php7-tokenizer \
+	php7-xml \
+	php7-xmlreader \
+	php7-xmlwriter \
+	composer \
+	wget \
+&&  wget https://github.com/phalcon/cphalcon/archive/v3.4.3.tar.gz \
+&&  tar xvzf v3.4.3.tar.gz \ 
+&&  cd cphalcon-3.4.3/build/  \
+&&  sh ./install \
+&&  echo "extension=phalcon.so" >> /etc/php7/conf.d/phalcon.ini \
+&& pecl channel-update pecl.php.net \
+&& pecl install yar && echo "extension=yar.so" >> /etc/php7/conf.d/yar.ini \
+&& pecl install swoole && echo "extension=swoole.so" >> /etc/php7/conf.d/swoole.ini \
+&& pecl install psr && echo "extension=psr.so" >> /etc/php7/conf.d/psr.ini \
 && composer config -g repo.packagist composer ${COMPOSER_MIRROR} \
-&& unset CPHALCON_VERSION \
-&& unset MCRYPT_VERSION \
-&& unset MEMCACHED_VERSION \
-&& unset IMAGICK_VERSION \
-&& unset MONGODB_VERSION \
-&& unset SWOOLE_VERSION \
-&& unset REDIS_VERSION \
-&& unset GEOIP_VERSION \
-&& unset YAR_VERSION \
-&& unset MSGPACK_VERSION \
-&& unset XDEBUG_VERSION \
-&& unset COMPOSER_MIRROR \
-&& rm -rf /var/cache/apk/* /tmp/* /var/tmp /var/www
+&& apk del $PHPIZE_DEPS php7-dev \
+&& addgroup -g 1000 -S ${PHP_FPM_USER} \
+&& adduser -u 1000 -D -S -s /sbin/nologin -G ${PHP_FPM_USER} ${PHP_FPM_USER} \
+&& rm -rf /var/cache/apk/* /tmp/* /var/tmp \
+&& ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo "Asia/Shanghai" > /etc/timezone \
+&& mkdir ${WORK_DIR}
 
-WORKDIR ${SITE_WORK_DIR}
 
-VOLUME ["${SITE_WORK_DIR}"]
+
+COPY entrypoint.sh /usr/local/bin/
+ENTRYPOINT ["entrypoint.sh"]
+
+WORKDIR ${WORK_DIR}
 
 EXPOSE 9000
+
+CMD ["php-fpm7", "-F"]

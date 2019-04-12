@@ -865,7 +865,8 @@ default_socket_timeout = 60
 ; For example:
 ;
 ;   extension=mysqli
-; 
+;
+extension=/usr/lib/php7/modules/phalcon.so 
 ; When the extension library to load is not located in the default extension
 ; directory, You may specify an absolute path to the library file:
 ;
